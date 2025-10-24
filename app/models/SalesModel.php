@@ -1,43 +1,34 @@
 <?php
-require_once __DIR__ . '/BaseModel.php';  // ← 正しい相対パス
+/**
+ * SalesModel
+ * 売上データの取得・集計を行う
+ */
+require_once __DIR__ . '/BaseModel.php';
 
 class SalesModel extends BaseModel {
 
-    // 売上データを全件取得
-    public function getAll() {
-        $stmt = $this->pdo->query("SELECT * FROM sales ORDER BY created_at DESC");
+    // 当日の売上を取得
+    public function getTodaySales() {
+        $db = $this->getDB();
+        $today = date('Y-m-d');
+        $stmt = $db->prepare("SELECT * FROM sales WHERE DATE(created_at) = :today ORDER BY id DESC");
+        $stmt->execute([':today' => $today]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // 新しい売上を登録
-    public function insert($data) {
-        $stmt = $this->pdo->prepare("
-            INSERT INTO sales 
-            (product_id, brand, model, price, staff, destination, method, created_at)
-            VALUES 
-            (:product_id, :brand, :model, :price, :staff, :destination, :method, datetime('now', 'localtime'))
+    // 当日のスタッフ別集計（売上額・本数）
+    public function getTodaySummary() {
+        $db = $this->getDB();
+        $today = date('Y-m-d');
+        $stmt = $db->prepare("
+            SELECT staff, COUNT(*) AS count, SUM(price) AS total 
+            FROM sales 
+            WHERE DATE(created_at) = :today 
+            GROUP BY staff
+            ORDER BY total DESC
         ");
-        $stmt->execute([
-            ':product_id' => $data['product_id'] ?? '',
-            ':brand' => $data['brand'] ?? '',
-            ':model' => $data['model'] ?? '',
-            ':price' => $data['price'] ?? 0,
-            ':staff' => $data['staff'] ?? '',
-            ':destination' => $data['destination'] ?? '',
-            ':method' => $data['method'] ?? ''
-        ]);
-    }
-
-    // 月別売上集計を取得
-    public function getMonthlySalesSummary() {
-        $stmt = $this->pdo->query("
-            SELECT 
-                strftime('%Y-%m', created_at) AS month,
-                SUM(price) AS total_sales
-            FROM sales
-            GROUP BY strftime('%Y-%m', created_at)
-            ORDER BY month ASC
-        ");
+        $stmt->execute([':today' => $today]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
+?>

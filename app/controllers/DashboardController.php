@@ -3,20 +3,24 @@ require_once __DIR__ . '/../models/SalesModel.php';
 
 class DashboardController {
 
+    // ダッシュボードトップ
     public function index() {
-        try {
-            // モデルを呼び出し
-            $salesModel = new SalesModel();
+        $salesModel = new SalesModel();
 
-            // 月別売上集計データを取得
-            $salesData = $salesModel->getMonthlySalesSummary();
+        // 当日売上一覧を取得
+        $todaySales = $salesModel->getTodaySales();
 
-        } catch (Exception $e) {
-            // 例外が発生した場合に空データを渡す
-            $salesData = [];
-        }
+        // 当日集計（スタッフ別）
+        $summary = $salesModel->getTodaySummary();
 
-        // ビューを表示
         include __DIR__ . '/../views/dashboard.php';
     }
+
+    // 詳細集計画面（グラフ用）
+    public function summary() {
+        $salesModel = new SalesModel();
+        $summary = $salesModel->getTodaySummary();
+        include __DIR__ . '/../views/dashboard_summary.php';
+    }
 }
+?>
